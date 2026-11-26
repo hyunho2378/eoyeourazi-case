@@ -1,20 +1,21 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Annotated, Stage, shot } from './Annotated';
+import { Annotated, Steps, shot } from './Annotated';
 import { Hub } from './Hub';
-import { KEY, SITES } from './notes';
+import { FEATURES, SITES } from './notes';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const SERVICE = 'https://jeongseon-arirang.vercel.app';
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* 결론 한 줄 제목과 짧은 보조 구절 */
-function Head({ title, lead }) {
+/* 구간 머리: 작은 영문 라벨 → 두 줄 헤드라인(둘째 줄 강조) → 짧은 설명 */
+function Head({ label, a, b, lead, light = false }) {
   return (
-    <div className="head">
-      <h2 className="headline rv">{title}</h2>
+    <div className={`head${light ? ' light' : ''}`}>
+      <p className="label rv">{label}</p>
+      <h2 className="headline rv">{a}<br /><em>{b}</em></h2>
       {lead && <p className="lead rv">{lead}</p>}
     </div>
   );
@@ -45,12 +46,50 @@ function LiveScreen({ path, poster, title }) {
   );
 }
 
+/* 설문 차트: 막대와 도넛 */
+function Bars({ items }) {
+  const max = Math.max(...items.map((x) => x[1]));
+  return (
+    <ul className="bars">
+      {items.map(([name, v], i) => (
+        <li key={name}>
+          <p className="bar-n">{name}</p>
+          <div className="bar-row"><span className="trk"><i className={i === 0 ? 'hi' : ''} style={{ width: `${(v / max) * 100}%` }} /></span><b>{v}</b></div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+function Donut({ parts, total, center }) {
+  const C = 2 * Math.PI * 54;
+  let acc = 0;
+  return (
+    <div className="donut">
+      <svg viewBox="0 0 140 140" aria-hidden="true">
+        {parts.map(([, v], i) => {
+          const len = (v / total) * C;
+          const el = <circle key={i} className={`dn d${i}`} cx="70" cy="70" r="54" strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-acc} />;
+          acc += len;
+          return el;
+        })}
+      </svg>
+      <p className="donut-c">{center}</p>
+    </div>
+  );
+}
+
 const LIVE = [
   { path: '/', poster: 'live/chat-home.jpg', name: '질문 창', what: '날짜와 하고 싶은 일 입력' },
   { path: '/map', poster: 'live/map-list.jpg', name: '아리랑 지도', what: '2D와 3D 전환과 장소 선택' },
   { path: '/n/park?preview=1', poster: 'live/park-card.jpg', name: '장소 화면', what: '가사와 소리 재생' },
   { path: '/n/pass', poster: 'live/pass.jpg', name: '아리랑 패스', what: '스탬프와 쿠폰 확인' },
   { path: '/guess', poster: 'live/quiz-q.jpg', name: '사진 퀴즈', what: '보기를 눌러 정답 확인' },
+];
+
+const SOLUTIONS = [
+  ['계획', '열차와 공연과 장날을 사이트 세 곳에서 따로 찾음', '물으면 열차와 공연과 장날을 맞춘 하루가 나옴'],
+  ['현장', '가사 속 조양강을 그냥 지나침', '스티커에 대면 그 자리의 가사와 소리가 열림'],
+  ['기록', '다녀가도 노래와 장소가 남지 않음', '네 곳의 이야기 조각이 패스에 남음'],
 ];
 
 const STAGES = [
@@ -105,11 +144,13 @@ const PHASES = [
 export default function App() {
   const root = useRef(null);
   const [live, setLive] = useState(0);
+  const [dark, setDark] = useState(true);
+
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
     const ctx = gsap.context(() => {
       if (reduced()) return;
-      /* 진입 연출: 아래 24px에서 떠오르며 밝아짐, 650ms, 강한 감속, 섹션 안 순번 지연 */
+      /* 진입 연출: 아래 24px에서 떠오르며 밝아짐 650ms 강한 감속 섹션 안 순번 지연 */
       gsap.utils.toArray('[data-sec]').forEach((sec) => {
         sec.querySelectorAll('.rv').forEach((item, idx) => {
           gsap.from(item, {
@@ -124,33 +165,71 @@ export default function App() {
     return () => { ctx.revert(); window.removeEventListener('load', refresh); };
   }, []);
 
+  /* 헤더 아래가 파랑 띠이면 헤더 글자를 흰색으로 */
+  useEffect(() => {
+    let raf = 0;
+    const check = () => {
+      raf = 0;
+      const hit = [...document.querySelectorAll('[data-blue]')].some((el) => {
+        const r = el.getBoundingClientRect();
+        return r.top <= 36 && r.bottom >= 36;
+      });
+      setDark(hit);
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(check); };
+    check();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
+
   return (
     <div className="page" ref={root}>
-      <header className="top">
+      <header className={`top${dark ? ' onblue' : ''}`}>
         <a href="#top" className="top-logo wordmark" aria-label="어여우라지 처음으로">어여우라지</a>
         <a className="top-link" href={SERVICE} target="_blank" rel="noreferrer">웹 서비스</a>
       </header>
 
       <main id="top">
-        {/* 1. 표지: 실제 앱 화면 + 한 줄 */}
-        <section className="cover" data-sec>
+        {/* 1. 표지: 브랜드 파랑 전면 + 붓글씨 제목 + 실제 화면 */}
+        <section className="cover band" data-sec data-blue>
           <div className="cover-text">
             <h1 className="cover-mark wordmark rv">어여우라지</h1>
-            <p className="cover-line rv">정선아리랑 가사 속 정선을 실제 여행길로 옮기는 NFC 여행 안내 서비스</p>
-            <p className="cover-sub rv">한림대학교 지역 길과 문학적 가치 캡스톤 디자인</p>
+            <p className="cover-line rv">정선아리랑 가사 속 정선을<br />실제 여행길로 옮기는 NFC 여행 안내 서비스</p>
+            <dl className="cover-meta rv">
+              <div><dt>PROJECT</dt><dd>NFC 여행 안내 서비스 디자인</dd></div>
+              <div><dt>COURSE</dt><dd>한림대학교 지역 길과 문학적 가치 캡스톤 디자인</dd></div>
+              <div><dt>FIELD</dt><dd>정선 현장 조사 2026. 10. 14.~15.</dd></div>
+              <div><dt>ROLE</dt><dd>서비스 기획과 UX 디자인</dd></div>
+            </dl>
           </div>
-          <div className="cover-symbol rv">
-            <div className="phone">
-              <div className="phone-screen" style={{ aspectRatio: '780 / 1688' }}>
-                <img src={shot('live/chat-answer.jpg')} alt="어여우라지가 짠 하루 일정 답 화면" loading="eager" />
-              </div>
-            </div>
+          <div className="cover-phones rv">
+            <div className="phone ph-a"><div className="phone-screen" style={{ aspectRatio: '780 / 1688' }}><img src={shot('live/chat-answer.jpg')} alt="하루 일정 답 화면" loading="eager" /></div></div>
+            <div className="phone ph-b"><div className="phone-screen" style={{ aspectRatio: '780 / 1688' }}><img src={shot('live/park-card.jpg')} alt="아라리공원 장소 화면" loading="eager" /></div></div>
           </div>
         </section>
 
-        {/* 2. 현장: 정선 현장 조사와 만난 사람들의 말 */}
+        {/* 2. Overview */}
+        <section className="sec overview" data-sec>
+          <div className="ov-art rv"><img src={shot('aerial.webp')} alt="아우라지 돌다리와 강" loading="lazy" /></div>
+          <div className="ov-body">
+            <Head label="OVERVIEW" a="이름으로만 남은 정선아리랑을" b="실제 여행길로 옮기는 서비스"
+              lead="정선아리랑은 강원 무형유산 제1호지만 2030에게는 이름으로만 남은 노래. 어여우라지는 질문 한 번으로 하루 일정을 받고 노래 속 장소에서 가사와 소리를 여는 NFC 여행 안내 서비스." />
+            <ul className="ov-facts rv">
+              <li>1971년 강원도 무형문화재 제1호 지정</li>
+              <li>2012년 아리랑 유네스코 인류무형문화유산 등재</li>
+            </ul>
+          </div>
+        </section>
+
+        {/* 3. 문제 전환 띠 */}
+        <section className="band bridge" data-sec data-blue>
+          <p className="bridge-t rv"><b>BUT</b> 이름을 아는 2030도 정선은 여행 후보에서 뺌</p>
+        </section>
+
+        {/* 4. 현장 조사 */}
         <section className="sec field" data-sec>
-          <Head title={<>정선읍과 여량의 노래 속 장소를<br />직접 걸은 현장 조사</>} lead="2026. 10. 14.~15. 아리랑박물관 직원과 정선 DMO 인터뷰와 재단 서면 질의" />
+          <Head label="FIELD RESEARCH" a="정선읍과 여량의 노래 속 장소를" b="직접 걸은 현장 조사" lead="2026. 10. 14.~15. 아리랑박물관 직원과 정선 DMO 인터뷰와 재단 서면 질의" />
           <div className="field-grid">
             <div className="field-photos rv">
               <figure className="fp-main">
@@ -188,16 +267,44 @@ export default function App() {
           </div>
         </section>
 
-        {/* 3. 문제: 설문 문장 + 흩어진 사이트 세 곳 */}
-        <section className="sec problem alt" data-sec>
-          <Head title={<>이름은 아는 노래<br />후보에서 빠지는 정선</>} />
-          <ul className="facts rv">
-            <li>40명 중 39명이 정선아리랑의 이름이나 가락을 알지만 나와 가깝다는 점수는 5점 중 1.98점</li>
-            <li>정선 미방문 30명 중 28명이 정선을 여행지로 잘 모름</li>
-            <li>정선을 다녀간 10명 중 5명은 아리랑을 접하지 못함</li>
-            <li className="src">출처: 이어주민 20대 설문 40명(2026. 10.)</li>
-          </ul>
-          <p className="sub-h rv">열차와 공연과 장날이 사이트 세 곳에 나뉨</p>
+        {/* 5. 설문 리서치 차트 */}
+        <section className="sec survey" data-sec>
+          <Head label="USER RESEARCH" a="이름은 아는 노래" b="후보에서 빠지는 정선"
+            lead="40명 중 39명이 정선아리랑의 이름이나 가락을 알지만 나와 가깝다는 점수는 5점 중 1.98점" />
+          <div className="charts">
+            <div className="chart rv">
+              <p className="ch-title">정선을 고르지 않은 이유</p>
+              <p className="ch-sub">미방문 30명 복수 선택</p>
+              <Bars items={[['다른 곳이 더 끌림', 15], ['무엇이 있는지 모름', 14], ['생각해 본 적 없음', 12], ['할 거리가 적어 보임', 10], ['차 없이 가기 어려움', 9]]} />
+              <p className="ch-insight">미방문 30명 중 21명이 강원에 살지만 28명은 정선을 잘 모름</p>
+            </div>
+            <div className="chart rv">
+              <p className="ch-title">다녀간 10명이 아리랑을 접한 방식</p>
+              <p className="ch-sub">정선 방문 경험자 10명</p>
+              <div className="donut-wrap">
+                <Donut total={10} center="10명" parts={[['접한 적 없음', 5], ['공연과 전시와 시장', 3], ['안내판과 기념품', 2]]} />
+                <ul className="legend">
+                  <li><i className="sw s0" />접한 적 없음 5명</li>
+                  <li><i className="sw s1" />공연과 전시와 시장 3명</li>
+                  <li><i className="sw s2" />안내판과 기념품 2명</li>
+                </ul>
+              </div>
+              <p className="ch-insight">다녀간 10명 중 5명은 아리랑을 접하지 못함</p>
+            </div>
+            <div className="chart rv">
+              <p className="ch-title">열차를 타지 않은 이유</p>
+              <p className="ch-sub">응답 21건</p>
+              <Bars items={[['머무는 시간이 짧게 느껴짐', 7], ['도착해서 무엇을 할지 몰랐음', 6], ['운행하는 요일을 몰랐음', 5], ['차로 가는 편을 고름', 3]]} />
+              <p className="ch-insight">21건 중 11건이 도착 뒤 할 일이나 운행 요일을 몰라서</p>
+            </div>
+          </div>
+          <p className="src rv">출처: 이어주민 20대 설문 40명(2026. 10.)</p>
+        </section>
+
+        {/* 6. 흩어진 정보 */}
+        <section className="sec problem" data-sec>
+          <Head label="PAIN POINT" a="열차와 공연과 장날이" b="사이트 세 곳에 나뉨"
+            lead="재단과 박물관과 축제와 아리랑마을 네 사이트에서 서로 다른 정보 19유형 확인" />
           <div className="sites">
             {SITES.map((s) => (
               <figure className="site rv" key={s.key}>
@@ -206,31 +313,36 @@ export default function App() {
               </figure>
             ))}
           </div>
-          <p className="facts src rv sites-src">재단과 박물관과 축제와 아리랑마을 네 사이트에서 서로 다른 정보 19유형 확인. 출처: 이어주민 재단 웹사이트 불일치 분석(2026. 10. 13.)</p>
+          <p className="src rv">출처: 이어주민 재단 웹사이트 불일치 분석(2026. 10. 13.)</p>
         </section>
 
-        {/* 4. 문제 정의 */}
-        <section className="sec define" data-sec>
-          <Head title={<>정선이 어떤 곳이고 오늘 무엇을 할 수 있는지<br />한 번에 보여야 하는 2030</>} />
-          <p className="pov rv">정선만의 경험을 찾지만 찾아볼 시간이 아까운 2030에게 필요한 화면. 그런데 아리랑은 장소와 끊기고 열차와 공연과 장날은 흩어짐. 그래서 정선을 후보에서 빼거나 와서도 아리랑을 지나치는 상태.</p>
-          <div className="pairs">
-            <div className="pair-head rv"><span>막힌 곳</span><span /><span>어여우라지의 해결</span></div>
-            <div className="pair rv">
-              <div><b>무엇이 언제 열리는지 모름</b><p>열차와 공연과 장날이 세 곳에 나뉨. 오늘 정선에서 무엇을 할지 한 번에 알 수 없음</p></div>
-              <i className="pair-line" aria-hidden="true" />
-              <div><b>물으면 나오는 하루</b><p>열차와 공연과 장날을 맞춘 일정</p></div>
-            </div>
-            <div className="pair rv">
-              <div><b>지나치는 아리랑</b><p>가사는 누리집에 있고 노래 속 장소는 관광지 메뉴에 따로 있음. 와서도 아리랑을 만나지 못함</p></div>
-              <i className="pair-line" aria-hidden="true" />
-              <div><b>노래 속 장소 NFC</b><p>그 자리에서 여는 가사와 소리</p></div>
-            </div>
+        {/* 7. Key insight 띠 */}
+        <section className="band insight" data-sec data-blue>
+          <p className="label rv">KEY INSIGHT</p>
+          <h2 className="insight-t rv">정선이 어떤 곳이고 오늘 무엇을 할 수 있는지<br />한 번에 보여야 하는 2030</h2>
+          <p className="insight-s rv">아리랑은 장소와 끊기고 열차와 공연과 장날은 흩어져 정선을 후보에서 빼거나 와서도 아리랑을 지나침</p>
+        </section>
+
+        {/* 8. Project goal */}
+        <section className="sec goal" data-sec>
+          <Head label="PROJECT GOAL" a="질문 하나와 스티커 하나로" b="정선의 하루를 잇는 세 가지 해결" />
+          <div className="sol">
+            {SOLUTIONS.map(([name, now, next]) => (
+              <div className="sol-col rv" key={name}>
+                <p className="sol-name">{name}</p>
+                <p className="sol-now"><b>지금</b>{now}</p>
+                <p className="sol-next"><b>어여우라지</b>{next}</p>
+              </div>
+            ))}
           </div>
         </section>
+        <section className="band goal-band" data-sec data-blue>
+          <p className="goal-t rv"><b>GOAL</b> 2030이 정선에 와서 아리랑을 만나고 군과 재단은 방문과 관람을 숫자로 얻음</p>
+        </section>
 
-        {/* 5. 퍼소나 */}
-        <section className="sec persona alt" data-sec>
-          <Head title={<>정선을 후보에서 지우는<br />2030 지은</>} />
+        {/* 9. 퍼소나 */}
+        <section className="sec persona" data-sec>
+          <Head label="PERSONA" a="정선을 후보에서 지우는" b="2030 지은" />
           <div className="ps rv">
             <div className="ps-who">
               <ul className="ps-list">
@@ -243,7 +355,7 @@ export default function App() {
               <p className="ps-cap">설문 응답을 바탕으로 만든 가상 인물</p>
             </div>
             <div className="ps-col">
-              <p className="ps-label">불편</p>
+              <p className="ps-label">PAIN POINT</p>
               <ul className="ps-list">
                 <li>정선에 무엇이 있는지 모름(미방문 30명 중 14명)</li>
                 <li>무엇이 언제 열리는지 모름</li>
@@ -251,7 +363,7 @@ export default function App() {
               </ul>
             </div>
             <div className="ps-col">
-              <p className="ps-label">필요</p>
+              <p className="ps-label">NEEDS</p>
               <ul className="ps-list">
                 <li>물으면 나오는 하루</li>
                 <li>차 없이 정선역에서 걸어서 닿는 장소</li>
@@ -261,9 +373,9 @@ export default function App() {
           </div>
         </section>
 
-        {/* 6. 사용자 여정 */}
+        {/* 10. 사용자 여정 */}
         <section className="sec journey-sec" data-sec>
-          <Head title={<>지은의 하루<br />지금과 어여우라지가 있을 때</>} />
+          <Head label="USER JOURNEY" a="지은의 하루" b="지금과 어여우라지가 있을 때" />
           <div className="jt rv">
             <p className="jt-rowlabel jt-r1">지금의 지은</p>
             <p className="jt-rowlabel jt-r2">어여우라지와 함께</p>
@@ -275,9 +387,10 @@ export default function App() {
           </div>
         </section>
 
-        {/* 7. 서비스 콘셉트 */}
-        <section className="sec concept alt" data-sec>
-          <Head title={<>질문에서 패스까지<br />노래 속 장소를 잇는 다섯 접점</>} lead="인스타그램 장소 게시물과 댓글 DM 그리고 정선아리랑열차 객실과 정선역 QR에서 시작" />
+        {/* 11. 서비스 콘셉트 */}
+        <section className="sec concept" data-sec>
+          <Head label="SERVICE CONCEPT" a="질문에서 패스까지" b="노래 속 장소를 잇는 다섯 접점"
+            lead="인스타그램 장소 게시물과 댓글 DM 그리고 정선아리랑열차 객실과 정선역 QR에서 시작" />
           <ol className="flow rv">
             {FLOW.map(([name, what, img], i) => (
               <li key={name}>
@@ -294,23 +407,58 @@ export default function App() {
           </ol>
         </section>
 
-        {/* 8. 이해관계자 구조 */}
+        {/* 12. 이해관계자 구조 */}
         <section className="sec stake" data-sec>
-          <Head title={<>서비스를 둘러싼 이해관계자와<br />주고받는 내용</>} />
+          <Head label="STAKEHOLDER" a="서비스를 둘러싼 이해관계자와" b="주고받는 내용" />
           <div className="rv">
             <Hub center={{ title: '어여우라지', sub: '질문 창과 NFC 장소 화면과 패스' }} left={HUB_LEFT} right={HUB_RIGHT} />
           </div>
         </section>
 
-        {/* 9. 핵심 화면 */}
-        <section className="sec feat alt" data-sec>
-          <Head title={<>핵심 다섯 화면과<br />눌렀을 때 바뀌는 내용</>} />
-          <div className="rv"><Stage steps={KEY} /></div>
+        {/* 13. 비주얼 시스템 */}
+        <section className="sec visual" data-sec>
+          <Head label="VISUAL CONCEPT" a="노래와 장소를 담은" b="파랑과 남색 두 색" />
+          <div className="vs">
+            <div className="vs-col rv">
+              <p className="vs-h">COLOR</p>
+              <div className="sw-row">
+                <div className="swatch s-blue"><b>Main</b><span>#2456D6</span></div>
+                <div className="swatch s-navy"><b>Dark</b><span>#14213D</span></div>
+              </div>
+              <p className="vs-s">파랑은 눌러서 바뀌는 곳 남색은 글자와 어두운 면 바탕은 흰색</p>
+            </div>
+            <div className="vs-col rv">
+              <p className="vs-h">TYPEFACE</p>
+              <p className="tf-brush wordmark">어여우라지</p>
+              <p className="tf-sans">가나다라 Aa</p>
+              <p className="vs-s">로고는 정선군 정선아리랑체 본문은 Pretendard</p>
+            </div>
+            <div className="vs-col rv">
+              <p className="vs-h">CHARACTER</p>
+              <div className="vs-char"><img src={shot('ui-card.webp')} alt="정선군 관광 캐릭터 와와군 다도 노버 강새" loading="lazy" /></div>
+              <p className="vs-s">장소마다 이야기를 안내하는 정선군 관광 캐릭터 네 종</p>
+            </div>
+          </div>
         </section>
 
-        {/* 10. 직접 눌러 보기 */}
+        {/* 14. GUI 표지 띠 */}
+        <section className="band gui-cover" data-sec data-blue>
+          <p className="label rv">GUI DESIGN</p>
+          <h2 className="gui-t rv">질문에서 패스까지<br />눌렀을 때 바뀌는 내용</h2>
+        </section>
+
+        {/* 15. GUI 기능별 구간 */}
+        {FEATURES.map((f) => (
+          <section className="sec fn" data-sec key={f.id}>
+            <Head label={f.label} a={f.a} b={f.b} lead={f.lead} />
+            <div className="rv"><Annotated src={f.main.src} alt={f.main.alt} notes={f.main.notes} ratio={f.main.ratio} /></div>
+            <div className="rv"><Steps items={f.steps} /></div>
+          </section>
+        ))}
+
+        {/* 16. 직접 눌러 보기 */}
         <section className="sec tryit" data-sec>
-          <Head title={<>실제 서비스를<br />이 자리에서 직접 사용</>} />
+          <Head label="TRY IT" a="실제 서비스를" b="이 자리에서 직접 사용" />
           <div className="try rv">
             <ul className="try-list" role="tablist">
               {LIVE.map((l, i) => (
@@ -328,9 +476,9 @@ export default function App() {
           </div>
         </section>
 
-        {/* 11. 정책 제안 */}
-        <section className="sec policy alt" data-sec>
-          <Head title={<>정선군과 재단에 하는<br />시범 운영 제안</>} lead="스티커가 놓이는 정선읍 네 곳과 그 자리에서 열리는 화면" />
+        {/* 17. 정책 제안 */}
+        <section className="sec policy" data-sec>
+          <Head label="POLICY PROPOSAL" a="정선군과 재단에 하는" b="시범 운영 제안" lead="스티커가 놓이는 정선읍 네 곳과 그 자리에서 열리는 화면" />
           <div className="places rv">
             {PLACES.map(([place, feature, what, img]) => (
               <figure key={place}>
@@ -355,16 +503,18 @@ export default function App() {
           </ol>
         </section>
 
-        {/* 12. 크레딧 */}
-        <section className="sec credit" data-sec>
-          <h2 className="closing-line rv">노래 속 장소에서<br />정선아리랑을 만나는 2030</h2>
+        {/* 18. 마무리 */}
+        <section className="band closing" data-sec data-blue>
+          <p className="ty rv">THANK YOU</p>
+          <p className="closing-mark wordmark rv">어여우라지</p>
+          <p className="closing-line rv">노래 속 장소에서 정선아리랑을 만나는 2030</p>
           <div className="cr-list">
             <div className="cr-item rv"><p className="cr-role">서비스</p><p>어여우라지</p><p>NFC 여행 안내 서비스 디자인</p></div>
             <div className="cr-item rv"><p className="cr-role">과목</p><p>한림대학교</p><p>지역 길과 문학적 가치 캡스톤 디자인</p></div>
             <div className="cr-item rv"><p className="cr-role">조사</p><p>20대 설문 40명 2026년 10월</p><p>아리랑박물관 직원 2명과 정선 DMO</p><p>정선아리랑문화재단 서면 답변</p></div>
             <div className="cr-item rv"><p className="cr-role">자료</p><p>가사: 정선군 누리집 수록 긴 아리랑(남자)</p><p>사진: 정선 현장 촬영(2026. 10. 14.~15.)</p><p>로고 글꼴: 정선군 정선아리랑체</p></div>
-            <div className="cr-item rv"><p className="cr-role">실제 서비스</p><p><a href={SERVICE} target="_blank" rel="noreferrer">웹 서비스</a></p></div>
           </div>
+          <a className="closing-btn rv" href={SERVICE} target="_blank" rel="noreferrer">웹 서비스</a>
         </section>
       </main>
     </div>

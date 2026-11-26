@@ -152,3 +152,18 @@ export function Stage({ steps }) {
     </div>
   );
 }
+
+/* STEP 화면 가로 나열. 단계 이름 위에 이어진 선 하나. */
+export function Steps({ items }) {
+  return (
+    <ol className="steps" style={{ '--n': items.length }}>
+      {items.map((s, i) => (
+        <li key={s.label}>
+          <p className="st-n">STEP {i + 1}</p>
+          <p className="st-name">{s.label}</p>
+          <img src={shot(s.src)} alt={s.alt} loading="lazy" style={{ aspectRatio: s.ratio || 780 / 1688 }} />
+        </li>
+      ))}
+    </ol>
+  );
+}
