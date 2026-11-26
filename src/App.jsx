@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ArrowUpRight } from 'lucide-react';
 import { Annotated, Stage, shot } from './Annotated';
 import { Hub } from './Hub';
 import { KEY, SITES } from './notes';
@@ -129,7 +128,7 @@ export default function App() {
     <div className="page" ref={root}>
       <header className="top">
         <a href="#top" className="top-logo wordmark" aria-label="어여우라지 처음으로">어여우라지</a>
-        <a className="top-link" href={SERVICE} target="_blank" rel="noreferrer">실제 서비스 열기 <ArrowUpRight size={16} strokeWidth={2} /></a>
+        <a className="top-link" href={SERVICE} target="_blank" rel="noreferrer">웹 서비스</a>
       </header>
 
       <main id="top">
@@ -138,7 +137,7 @@ export default function App() {
           <div className="cover-text">
             <h1 className="cover-mark wordmark rv">어여우라지</h1>
             <p className="cover-line rv">정선아리랑 가사 속 정선을 실제 여행길로 옮기는 NFC 여행 안내 서비스</p>
-            <p className="cover-sub rv">한림대학교 지역 길과 문학적 가치 캡스톤 디자인<br />팀 이어주민</p>
+            <p className="cover-sub rv">한림대학교 지역 길과 문학적 가치 캡스톤 디자인</p>
           </div>
           <div className="cover-symbol rv">
             <div className="phone">
@@ -322,7 +321,7 @@ export default function App() {
                 </li>
               ))}
               <li className="try-out">
-                <a className="try-link" href={SERVICE + LIVE[live].path} target="_blank" rel="noreferrer">새 창에서 열기 <ArrowUpRight size={16} strokeWidth={2} /></a>
+                <a className="try-link" href={SERVICE + LIVE[live].path} target="_blank" rel="noreferrer">웹 서비스</a>
               </li>
             </ul>
             <LiveScreen path={LIVE[live].path} poster={LIVE[live].poster} title={`어여우라지 ${LIVE[live].name} 실제 화면`} />
@@ -364,7 +363,7 @@ export default function App() {
             <div className="cr-item rv"><p className="cr-role">과목</p><p>한림대학교</p><p>지역 길과 문학적 가치 캡스톤 디자인</p></div>
             <div className="cr-item rv"><p className="cr-role">조사</p><p>20대 설문 40명 2026년 10월</p><p>아리랑박물관 직원 2명과 정선 DMO</p><p>정선아리랑문화재단 서면 답변</p></div>
             <div className="cr-item rv"><p className="cr-role">자료</p><p>가사: 정선군 누리집 수록 긴 아리랑(남자)</p><p>사진: 정선 현장 촬영(2026. 10. 14.~15.)</p><p>로고 글꼴: 정선군 정선아리랑체</p></div>
-            <div className="cr-item rv"><p className="cr-role">실제 서비스</p><p><a href={SERVICE} target="_blank" rel="noreferrer">어여우라지 열기 <ArrowUpRight size={15} strokeWidth={2} /></a></p></div>
+            <div className="cr-item rv"><p className="cr-role">실제 서비스</p><p><a href={SERVICE} target="_blank" rel="noreferrer">웹 서비스</a></p></div>
           </div>
         </section>
       </main>

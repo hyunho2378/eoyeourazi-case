@@ -6,7 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 const BASE = import.meta.env.BASE_URL;
 export const shot = (name) => `${BASE}img/${name}`;
 export const BREAK = 980;
-const LINE = { blue: '#1f5fd6', yellow: '#e3a800', red: '#d93a2b' };
+const LINE = { blue: '#2456d6', yellow: '#14213d', red: '#14213d' };
 
 export function Annotated({ src, alt, notes, ratio = 780 / 1688, frame = 'phone', caption, stack = false }) {
   const st = useRef(null);
