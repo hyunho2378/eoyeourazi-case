@@ -8,7 +8,7 @@ export const shot = (name) => `${BASE}img/${name}`;
 export const BREAK = 980;
 const LINE = { blue: '#1f5fd6', yellow: '#e3a800', red: '#d93a2b' };
 
-export function Annotated({ src, alt, notes, ratio = 780 / 1688, frame = 'phone', caption }) {
+export function Annotated({ src, alt, notes, ratio = 780 / 1688, frame = 'phone', caption, stack = false }) {
   const st = useRef(null);
   const [paths, setPaths] = useState([]);
   const [on, setOn] = useState(-1);
@@ -20,7 +20,7 @@ export function Annotated({ src, alt, notes, ratio = 780 / 1688, frame = 'phone'
     const cards = el.querySelectorAll('[data-card]');
     cards.forEach((c) => { c.style.top = ''; c.style.width = ''; c.style.left = ''; c.style.right = ''; });
     el.style.marginBottom = '';
-    if (window.innerWidth <= BREAK) { setPaths([]); return; }
+    if (stack || window.innerWidth <= BREAK) { setPaths([]); return; }
     const sr = el.getBoundingClientRect();
     const pr = el.querySelector('.phone').getBoundingClientRect();
     const mL = pr.left - sr.left;
@@ -64,7 +64,7 @@ export function Annotated({ src, alt, notes, ratio = 780 / 1688, frame = 'phone'
     });
     if (need - sr.height > 1) el.style.marginBottom = `${Math.ceil(need - sr.height)}px`;
     setPaths(out);
-  }, [notes, frame]);
+  }, [notes, frame, stack]);
 
   useLayoutEffect(() => {
     layout();
@@ -84,7 +84,7 @@ export function Annotated({ src, alt, notes, ratio = 780 / 1688, frame = 'phone'
   }, []);
 
   return (
-    <div className={`ann${seen ? ' seen' : ''}`} data-frame={frame} ref={st}>
+    <div className={`ann${seen ? ' seen' : ''}${stack ? ' stack' : ''}`} data-frame={frame} ref={st}>
       <div className="ann-mid">
         <div className="phone">
           <div className="phone-screen" style={{ aspectRatio: ratio }}>
